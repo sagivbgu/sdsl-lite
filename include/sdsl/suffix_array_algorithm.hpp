@@ -657,7 +657,30 @@ typename t_csa::string_type extract(
     extract(csa, begin, end, result.begin());
     return result;
 }
+//case A:
+    typename t_csa::char_type curr_char;
+    typename t_csa::size_type window_size =0, left_res=0, right_res=0, left_err_res=0, right_err_res=0, result=0, i =0;
+    //find SA of right half P[x...m]
+    window_size = backward_search(csa, 0, csa.size()-1, begin+x, end, left_res, right_res);
+    cout<<"window_sz: "<< window_size<< " l_res: "<<left_res<< " r_res: " << right_res<<" x: "<<x<<endl ;
 
+    if (left_res<=right_res){
+        //for each curr_char at index i in P[0...x-1]  
+        for (i=x ; i>0  ; i--){
+            curr_char = (typename t_csa::char_type)*(begin+i-1);
+            //check existence of P[0...i-1]<<j<<P[i+1...m] s.t j!=i, j in alphabet
+            for(size_t j=1; j<csa.sigma; j++ ){ 
+                if(csa.char2comp[curr_char] != j){ 
+                    backward_search(csa, left_res , right_res, csa.comp2char[j], left_err_res, right_err_res);
+                    result+= backward_search(csa, left_err_res, right_err_res, begin, begin+i-1, left_err_res, right_err_res);
+                }
+            }
+            //return char at j index in P to the original one
+            backward_search(csa,left_res,right_res,curr_char,left_res,right_res);
+        }
+    }
+    return result;
+}
 
 } // end namespace
 #endif
