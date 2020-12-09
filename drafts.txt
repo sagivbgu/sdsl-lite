@@ -28,6 +28,64 @@ la
 
 
 
+index: abcdef
+pattr: bcc
+error:   ^
+
+m = 3
+x = 2
+
+index_R: fedcba
+pattr_R: ccb
+error:   ^
+
+
+
+
+bbbcde
+bbd
+^^
+
+P: dbb
+E: ^  
+
+P: bbbd
+E: ^  
+
+
+bbbcbcde
+
+\epsilon
+e
+de
+cde
+bcde
+cbcde
+bcbcde
+bbcbcde
+bbbcbcde
+
+0. \epsilon
+1. bbbcbcde
+2. bbcbcde
+3. bcbcde
+4. bcde
+5. cbcde
+6. cde
+7. de
+8. e
+
+REV:
+0. \epsilon
+1. b
+2. bb
+3. bbb
+4. bcbbb
+5. cbbb
+6. cbcbbb
+7. dcbcbbb
+8. dcbcbbbb
+
 
 
 
