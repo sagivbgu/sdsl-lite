@@ -48,7 +48,7 @@ typename t_csa::size_type count_one_error_case(const t_csa &csa, t_pat_iter begi
                             if (case_a)
                                 locations[locations_size + k] = csa[left_err_res + k];
                             else
-                                locations[locations_size + k] = csa.size() - 1 - csa[left_err_res + k] - m;
+                                locations[locations_size + k] = csa.size() - csa[left_err_res + k] - m;
                         }
                     }
                 }
