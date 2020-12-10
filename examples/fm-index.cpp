@@ -48,7 +48,7 @@ typename t_csa::size_type count_one_error_case(const t_csa &csa, t_pat_iter begi
                             if (case_a)
                                 locations[locations_size + k] = csa[left_err_res + k];
                             else
-                                locations[locations_size + k] = csa.size() - csa[left_err_res + k] - m;
+                                locations[locations_size + k] = csa.size() - 1- csa[left_err_res + k] - m;
                         }
                     }
                 }
@@ -160,7 +160,6 @@ int main(int argc, char **argv)
     // bidirectional_search(fm_index, 0, fm_index.size() - 1, 0, fm_index.size() - 1, 'b', l_fwd_res, r_fwd_res, l_bwd_res, r_bwd_res);
 
     bool do_locate = false;
-    int_vector<64> locations(0);
     if (max_locations > 0)
         do_locate = true;
 
@@ -171,7 +170,7 @@ int main(int argc, char **argv)
     while (getline(cin, query))
     {
         size_t m = query.size();
-
+        int_vector<64> locations(0);
         string rev_query = query;
         reverse(rev_query.begin(), rev_query.end());
 
