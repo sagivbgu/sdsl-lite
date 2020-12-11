@@ -246,7 +246,9 @@ int main(int argc, char **argv)
         case 1:
             occs = handle_one_error(fm_index, rev_fm_index, query, rev_query, locations, do_locate);
             break;
-        case 2: // TODO
+        case 2: 
+            occs = handle_two_errors(fm_index, rev_fm_index, query, rev_query, locations, do_locate);
+            break;
         default:
             occs = sdsl::count(fm_index, query.begin(), query.end());
             locations = locate(fm_index, query.begin(), query.begin() + m);
