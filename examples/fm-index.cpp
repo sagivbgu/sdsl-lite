@@ -2,11 +2,21 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
-#include <iomanip>
 #include <vector>
 
 using namespace sdsl;
 using namespace std;
+
+// TODO: Remove all comments
+// typedef sdsl::csa_wt<sdsl::wt_pc<sdsl::balanced_shape, sdsl::int_vector<(unsigned char)1>, sdsl::rank_support_v<(unsigned char)1, (unsigned char)1>, sdsl::select_support_mcl<(unsigned char)1, (unsigned char)1>, sdsl::select_support_mcl<(unsigned char)0, (unsigned char)1>, sdsl::byte_tree<false> >,
+//   32u, 32u, sdsl::sa_order_sa_sampling<(unsigned char)0>, sdsl::isa_sampling<(unsigned char)0>, sdsl::byte_alphabet> t_csa;
+typedef csa_wt<wt_blcd<>, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet> t_csa;
+//   csa_wt<wt_huff<>, 64, 64, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet>      
+//    csa_wt<wt_blcd<>, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, succinct_byte_alphabet<> >,
+//    csa_wt<wt_hutu<>, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet>,
+//    csa_wt<wt_hutu<>, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, succinct_byte_alphabet<> >,
+//    csa_wt<wt_hutu<bit_vector_il<> >, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet>
+    
 
 template <class t_csa, class t_rac, class t_pat_iter>
 typename t_csa::size_type count_one_error_case(const t_csa &csa, typename t_csa::size_type left_window, typename t_csa::size_type right_window,
@@ -166,7 +176,7 @@ count_two_errors_case_d(const t_csa &csa,
                               occs = 0, result = 0, locations_size, i, j, k, l, n;
 
     // First obtain the the SA range of P[s1+1..s2] and then the SA’ range using forward search.
-    bidirectional_search_forward(csa, 0, csa.size() - 1, 0, csa.size() - 1, begin + s_1, begin + s_2,
+    bidirectional_search_forward(csa, rev_csa, 0, csa.size() - 1, 0, rev_csa.size() - 1, begin + s_1, begin + s_2,
                                  fwd_left_res, fwd_right_res, bwd_left_res, bwd_right_res);
 
     if (bwd_left_res > bwd_right_res)
@@ -192,7 +202,7 @@ count_two_errors_case_d(const t_csa &csa,
                         if (csa.char2comp[curr_char] != l)
                         {
                             backward_search(rev_csa, bwd_left_err_res, bwd_right_err_res, csa.comp2char[l], fwd_left_err_res, fwd_right_err_res);
-                            occs = backward_search(rev_csa, fwd_left_err_res, fwd_right_err_res, begin, begin + k - 1, fwd_left_err_res, fwd_right_err_res);
+                            occs = backward_search(rev_csa, fwd_left_err_res, fwd_right_err_res, rev_begin, rev_begin + k - 1, fwd_left_err_res, fwd_right_err_res);
                             result += occs;
 
                             if (locate && occs > 0)
@@ -225,6 +235,7 @@ handle_two_errors(
     bool locate)
 {
     size_t occs = 0;
+    // return occs = count_two_errors_case_d(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
     return occs = count_two_errors_case(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
 }
 
@@ -271,7 +282,7 @@ int main(int argc, char **argv)
 
     string index_suffix = ".fm9";
     string index_file = string(argv[1]) + index_suffix;
-    csa_wt<wt_huff<rrr_vector<127>>, 512, 1024> fm_index;
+    t_csa fm_index;
 
     if (!load_from_file(fm_index, index_file))
     {
@@ -292,7 +303,7 @@ int main(int argc, char **argv)
     reverse(rev_index_string.begin(), rev_index_string.end());
 
     string rev_index_file = "reversed_" + index_file;
-    csa_wt<wt_huff<rrr_vector<127>>, 512, 1024> rev_fm_index;
+    t_csa rev_fm_index;
 
     if (!load_from_file(rev_fm_index, rev_index_file))
     {
@@ -334,8 +345,6 @@ int main(int argc, char **argv)
         if (occs > 0)
         {
             cout << "Location and context of first occurrences:" << endl;
-            // TODO: Uncomment
-            // auto locations = locate(fm_index, query.begin(), query.begin() + m);
             sort(locations.begin(), locations.end());
             for (size_t i = 0, pre_extract = pre_context, post_extract = post_context; i < min(occs, max_locations); ++i)
             {
