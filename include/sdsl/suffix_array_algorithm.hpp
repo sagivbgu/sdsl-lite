@@ -658,6 +658,5 @@ typename t_csa::string_type extract(
     return result;
 }
 
-
 } // end namespace
 #endif

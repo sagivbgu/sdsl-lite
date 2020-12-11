@@ -1,0 +1,113 @@
+Sigma = {a, b, c}
+T = aaaaaaaaaa
+P = acaaaa
+
+1 mismatch
+x = 2
+1 <= mismatch <= 2
+
+ba -> 0 occs
+i = 2
+
+bba -> Backward search -> abba
+cba -> Backward search -> acba
+baba
+caba
+
+
+aaaa
+aaca
+aabb
+aabc
+
+
+al
+la
+
+
+
+
+
+index: abcdef
+pattr: bcc
+error:   ^
+
+m = 3
+x = 2
+
+index_R: fedcba
+pattr_R: ccb
+error:   ^
+
+
+
+
+bbbcde
+bbd
+^^
+
+P: dbb
+E: ^  
+
+P: bbbd
+E: ^  
+
+
+bbbcbcde
+
+\epsilon
+e
+de
+cde
+bcde
+cbcde
+bcbcde
+bbcbcde
+bbbcbcde
+
+0. \epsilon
+1. bbbcbcde
+2. bbcbcde
+3. bcbcde
+4. bcde
+5. cbcde
+6. cde
+7. de
+8. e
+
+REV:
+0. \epsilon
+1. b
+2. bb
+3. bbb
+4. bcbbb
+5. cbbb
+6. cbcbbb
+7. dcbcbbb
+8. dcbcbbbb
+
+
+
+
+
+
+
+1 Error:
+Case A: // The mismatch occurs on the first x positions on the pattern (the first half
+let m = query.size()
+let x = ceil(m/2)
+backward_search(fm_index, query.begin() + x + 1, query.end(), left_result, right_result)
+old_left = left_result
+old_right = right_result
+for (int j = x; j >= 0; --j) // Check indexes
+    for (int i = 0; i < alphabet.size(); ++i)
+        if (query[j] == i)
+            continue;
+        backward_search(fm_index, alphabet[i], left_result, right_result) // Search for a char
+        backward_search(fm_index, query.begin(), query[j-1], left_result, right_result) // Search for a char
+        backward_search(fm_index, query[j], old_left, old_right) // Search for the char that wasn't changed, for the next iteration
+
+// In each case, if 0 is returned, then break.
+// Don't forget edge case: j-1 is out of bounds.
+
+Case B: // The mismatch occurs on the last m−x positions (the second half).

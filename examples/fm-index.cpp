@@ -205,11 +205,11 @@ int main(int argc, char **argv)
             cout << "ERROR: File " << argv[1] << " does not exist. Exit." << endl;
             return 1;
         }
-        cout << "No index " << index_file << " located. Building index now." << endl;
+        // cout << "No index " << index_file << " located. Building index now." << endl;
         construct(fm_index, argv[1], 1);     // generate index
         store_to_file(fm_index, index_file); // save it
     }
-    cout << "Index construction complete, index requires " << size_in_mega_bytes(fm_index) << " MiB." << endl;
+    // cout << "Index construction complete, index requires " << size_in_mega_bytes(fm_index) << " MiB." << endl;
 
     ifstream index_file_stream(argv[1]);
     string rev_index_string((istreambuf_iterator<char>(index_file_stream)), istreambuf_iterator<char>());
@@ -220,28 +220,18 @@ int main(int argc, char **argv)
 
     if (!load_from_file(rev_fm_index, rev_index_file))
     {
-        cout << "No reversed index " << index_file << " located. Building reversed index now." << endl;
+        // cout << "No reversed index " << index_file << " located. Building reversed index now." << endl;
         construct_im(rev_fm_index, rev_index_string, 1); // generate index
         store_to_file(rev_fm_index, rev_index_file);     // save it
     }
-
-    string temp_query = "bcd";
-    // size_t s, l_fwd_res, r_fwd_res, l_bwd_res, r_bwd_res;
-    // string::iterator begin = temp.begin();
-    // string::iterator end = temp.end();
-
-    // string::iterator begin = temp.begin();
-    // size_t count = 0, size = 0;
-    // size_t l_fwd_res, r_fwd_res, l_bwd_res, r_bwd_res;
-    // bidirectional_search(fm_index, 0, fm_index.size() - 1, 0, fm_index.size() - 1, 'b', l_fwd_res, r_fwd_res, l_bwd_res, r_bwd_res);
 
     bool do_locate = false;
     if (max_locations > 0)
         do_locate = true;
 
-    cout << "Input search terms and press Ctrl-D to exit." << endl;
-    string prompt = "\e[0;32m>\e[0m ";
-    cout << prompt;
+    // cout << "Input search terms and press Ctrl-D to exit." << endl;
+    // string prompt = "\e[0;32m>\e[0m ";
+    // cout << prompt;
     string query, rev_query;
     while (getline(cin, query))
     {
@@ -256,24 +246,22 @@ int main(int argc, char **argv)
         case 1:
             occs = handle_one_error(fm_index, rev_fm_index, query, rev_query, locations, do_locate);
             break;
-        case 2: 
-            occs = handle_two_errors(fm_index, rev_fm_index, query, rev_query, locations, do_locate);
-            break;
+        case 2: // TODO
         default:
             occs = sdsl::count(fm_index, query.begin(), query.end());
             locations = locate(fm_index, query.begin(), query.begin() + m);
         }
 
-        cout << "# of occurrences: " << occs << endl;
+        cout << query << " : " << occs << endl;
         if (occs > 0)
         {
-            cout << "Location and context of first occurrences: " << endl;
+            cout << "Location and context of first occurrences:" << endl;
             // TODO: Uncomment
             // auto locations = locate(fm_index, query.begin(), query.begin() + m);
             sort(locations.begin(), locations.end());
             for (size_t i = 0, pre_extract = pre_context, post_extract = post_context; i < min(occs, max_locations); ++i)
             {
-                cout << setw(8) << locations[i] << ": ";
+                cout << "  " << locations[i] << ": ";
                 if (pre_extract > locations[i])
                 {
                     pre_extract = locations[i];
@@ -289,17 +277,18 @@ int main(int argc, char **argv)
                 {
                     pre = pre.substr(pre.find_last_of('\n') + 1);
                 }
-                cout << pre;
-                cout << "\e[1;31m";
+                // cout << pre;
+                // cout << "\e[1;31m";
                 cout << s.substr(0, m);
-                cout << "\e[0m";
-                string context = s.substr(m);
-                cout << context.substr(0, context.find_first_of('\n')) << endl;
+                // cout << "\e[0m";
+                cout << endl;
+                // string context = s.substr(m);
+                // cout << context.substr(0, context.find_first_of('\n')) << endl;
             }
         }
-        cout << prompt;
+        // cout << prompt;
     }
 
     index_file_stream.close(); // TODO: Check it's fine
-    cout << endl;
+    // cout << endl;
 }
