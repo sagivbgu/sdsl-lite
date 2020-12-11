@@ -9,15 +9,15 @@ using namespace sdsl;
 using namespace std;
 
 template <class t_csa, class t_rac, class t_pat_iter>
-typename t_csa::size_type count_one_error_case(const t_csa &csa,typename t_csa::size_type left_window, typename t_csa::size_type right_window,
-                                            t_pat_iter begin, t_pat_iter end, bool include_middle, bool case_a, t_rac &locations, bool locate)
+typename t_csa::size_type count_one_error_case(const t_csa &csa, typename t_csa::size_type left_window, typename t_csa::size_type right_window,
+                                               t_pat_iter begin, t_pat_iter end, bool include_middle, bool case_a, t_rac &locations, bool locate)
 {
     typename t_csa::size_type m = end - begin;
     typename t_csa::size_type x = (m + 1) / 2;
     if (!include_middle)
         x--;
 
-    if ( end - begin > (typename std::iterator_traits<t_pat_iter>::difference_type)csa.size())
+    if (end - begin > (typename std::iterator_traits<t_pat_iter>::difference_type)csa.size())
         return 0;
 
     typename t_csa::char_type curr_char;
@@ -50,7 +50,7 @@ typename t_csa::size_type count_one_error_case(const t_csa &csa,typename t_csa::
                             if (case_a)
                                 locations[locations_size + k] = csa[left_err_res + k];
                             else
-                                locations[locations_size + k] = csa.size() -1 - csa[left_err_res + k] - m;
+                                locations[locations_size + k] = csa.size() - 1 - csa[left_err_res + k] - m;
                         }
                     }
                 }
@@ -97,42 +97,118 @@ handle_one_error(
 ///////////////////2-errors////////////////////////////////
 template <class t_csa, class t_rac, class t_pat_iter>
 typename t_csa::size_type count_two_errors_case(const t_csa &csa,
-    const t_csa &rev_csa,
-    t_pat_iter begin,
-    t_pat_iter end,
-    t_pat_iter rev_begin,
-    t_pat_iter rev_end,
-    t_rac &locations,
-    bool locate)
+                                                const t_csa &rev_csa,
+                                                t_pat_iter begin,
+                                                t_pat_iter end,
+                                                t_pat_iter rev_begin,
+                                                t_pat_iter rev_end,
+                                                t_rac &locations,
+                                                bool locate)
 {
-    typename t_csa::size_type m = end-begin;
+    typename t_csa::size_type m = end - begin;
     typename t_csa::size_type s_1 = (m) / 3;
     typename t_csa::size_type s_2 = m - s_1;
 
-    if (end-begin > (typename std::iterator_traits<t_pat_iter>::difference_type)csa.size())
+    if (end - begin > (typename std::iterator_traits<t_pat_iter>::difference_type)csa.size())
         return 0;
 
     typename t_csa::char_type curr_char;
-    typename t_csa::size_type left_res = 0, right_res = 0, j=0, left_err_res = 0, right_err_res = 0, result = 0, occs = 0;
+    typename t_csa::size_type left_res = 0, right_res = 0, j = 0, left_err_res = 0, right_err_res = 0, result = 0, occs = 0;
     // size_t locations_size;
-    
+
     //find SA of last third P[s_2...m]
     backward_search(csa, 0, csa.size() - 1, begin + s_2, end, left_res, right_res);
 
-    if (left_res <= right_res){
-         //for each curr_char at index j in P[1...s_2 -1]
-        for (j = s_2 ; j > 0; j--){
+    if (left_res <= right_res)
+    {
+        //for each curr_char at index j in P[1...s_2 -1]
+        for (j = s_2; j > 0; j--)
+        {
             curr_char = (typename t_csa::char_type) * (begin + j - 1);
             //check existence of P[0...i-1]<<j<<P[i+1...m] s.t j!=i, j in alphabet
-                for (size_t i = 1; i < csa.sigma; i++){
-                    if (csa.char2comp[curr_char] != i){
-                        backward_search(csa, left_res, right_res, csa.comp2char[i], left_err_res, right_err_res);
-                        occs = handle_one_error(csa,rev_csa, left_err_res, right_err_res, begin, begin + j - 1, rev_begin, rev_end, locations,locate);
-                        result += occs;
+            for (size_t i = 1; i < csa.sigma; i++)
+            {
+                if (csa.char2comp[curr_char] != i)
+                {
+                    backward_search(csa, left_res, right_res, csa.comp2char[i], left_err_res, right_err_res);
+                    occs = handle_one_error(csa, rev_csa, left_err_res, right_err_res, begin, begin + j - 1, rev_begin, rev_end, locations, locate);
+                    result += occs;
                 }
-             }
-        //return char at j index in P to the original one
-        backward_search(csa, left_res, right_res, curr_char, left_res, right_res);
+            }
+            //return char at j index in P to the original one
+            backward_search(csa, left_res, right_res, curr_char, left_res, right_res);
+        }
+    }
+    return result;
+}
+
+template <class t_csa, class t_rac, class t_pat_iter>
+typename t_csa::size_type
+count_two_errors_case_d(const t_csa &csa,
+                        const t_csa &rev_csa,
+                        t_pat_iter begin,
+                        t_pat_iter end,
+                        t_pat_iter rev_begin,
+                        t_pat_iter rev_end,
+                        t_rac &locations,
+                        bool locate)
+{
+    typename t_csa::size_type m = end - begin;
+    typename t_csa::size_type s_1 = m / 3;
+    typename t_csa::size_type s_2 = m - s_1;
+
+    if (end - begin > (typename std::iterator_traits<t_pat_iter>::difference_type)csa.size())
+        return 0;
+
+    typename t_csa::char_type curr_char;
+    typename t_csa::size_type bwd_left_res = 0, bwd_right_res = 0, fwd_left_res = 0, fwd_right_res = 0,
+                              bwd_left_err_res = 0, bwd_right_err_res = 0, fwd_left_err_res = 0, fwd_right_err_res = 0,
+                              occs = 0, result = 0, locations_size, i, j, k, l, n;
+
+    // First obtain the the SA range of P[s1+1..s2] and then the SA’ range using forward search.
+    bidirectional_search_forward(csa, 0, csa.size() - 1, 0, csa.size() - 1, begin + s_1, begin + s_2,
+                                 fwd_left_res, fwd_right_res, bwd_left_res, bwd_right_res);
+
+    if (bwd_left_res > bwd_right_res)
+        return 0;
+
+    // For each i=s1-1,...,0, we apply backward search to compute the SA range of P[1..i−1]e1P[i+1..s2-1].
+    for (i = s_1; i > 0; i--)
+    {
+        curr_char = (typename t_csa::char_type) * (begin + i - 1);
+        for (j = 1; j < csa.sigma; j++)
+        {
+            if (csa.char2comp[curr_char] != j)
+            {
+                backward_search(csa, bwd_left_res, bwd_right_res, csa.comp2char[j], bwd_left_err_res, bwd_right_err_res);
+                backward_search(csa, bwd_left_err_res, bwd_right_err_res, begin, begin + i - 1, bwd_left_err_res, bwd_right_err_res);
+
+                // For each k=s2,...,m, we apply forward search to compute the SA range of P[1..i−1]e1P[i..j−1]e2P[j..m] for all possible e2.
+                for (k = s_2; k < csa.size(); k++)
+                {
+                    for (l = 1; l < csa.sigma; l++)
+                    {
+                        curr_char = (typename t_csa::char_type) * (begin + k);
+                        if (csa.char2comp[curr_char] != l)
+                        {
+                            backward_search(rev_csa, bwd_left_err_res, bwd_right_err_res, csa.comp2char[l], fwd_left_err_res, fwd_right_err_res);
+                            occs = backward_search(rev_csa, fwd_left_err_res, fwd_right_err_res, begin, begin + k - 1, fwd_left_err_res, fwd_right_err_res);
+                            result += occs;
+
+                            if (locate && occs > 0)
+                            {
+                                locations_size = locations.size();
+                                locations.resize(locations_size + occs);
+                                for (n = 0; n < occs; n++)
+                                    locations[locations_size + n] = csa[fwd_left_err_res + n];
+                            }
+                        }
+                    }
+                    backward_search(rev_csa, bwd_left_err_res, bwd_right_err_res, curr_char, bwd_left_err_res, bwd_right_err_res);
+                }
+            }
+            //return char at i index in P to the original one
+            backward_search(csa, bwd_left_res, bwd_right_res, curr_char, bwd_left_res, bwd_right_res);
         }
     }
     return result;
@@ -149,7 +225,7 @@ handle_two_errors(
     bool locate)
 {
     size_t occs = 0;
-    return occs = count_two_errors_case(csa, rev_csa, query.begin(), query.end(),rev_query.begin(), rev_query.end(), locations, locate);
+    return occs = count_two_errors_case(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
 }
 
 int main(int argc, char **argv)
@@ -246,7 +322,7 @@ int main(int argc, char **argv)
         case 1:
             occs = handle_one_error(fm_index, rev_fm_index, query, rev_query, locations, do_locate);
             break;
-        case 2: 
+        case 2:
             occs = handle_two_errors(fm_index, rev_fm_index, query, rev_query, locations, do_locate);
             break;
         default:
