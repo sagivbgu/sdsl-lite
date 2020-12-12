@@ -11,12 +11,11 @@ using namespace std;
 // typedef sdsl::csa_wt<sdsl::wt_pc<sdsl::balanced_shape, sdsl::int_vector<(unsigned char)1>, sdsl::rank_support_v<(unsigned char)1, (unsigned char)1>, sdsl::select_support_mcl<(unsigned char)1, (unsigned char)1>, sdsl::select_support_mcl<(unsigned char)0, (unsigned char)1>, sdsl::byte_tree<false> >,
 //   32u, 32u, sdsl::sa_order_sa_sampling<(unsigned char)0>, sdsl::isa_sampling<(unsigned char)0>, sdsl::byte_alphabet> t_csa;
 typedef csa_wt<wt_blcd<>, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet> t_csa;
-//   csa_wt<wt_huff<>, 64, 64, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet>      
+//   csa_wt<wt_huff<>, 64, 64, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet>
 //    csa_wt<wt_blcd<>, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, succinct_byte_alphabet<> >,
 //    csa_wt<wt_hutu<>, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet>,
 //    csa_wt<wt_hutu<>, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, succinct_byte_alphabet<> >,
 //    csa_wt<wt_hutu<bit_vector_il<> >, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet>
-    
 
 template <class t_csa, class t_rac, class t_pat_iter>
 typename t_csa::size_type count_one_error_case(const t_csa &csa, typename t_csa::size_type left_window, typename t_csa::size_type right_window,
@@ -173,11 +172,16 @@ count_two_errors_case_d(const t_csa &csa,
     typename t_csa::char_type curr_char;
     typename t_csa::size_type bwd_left_res = 0, bwd_right_res = 0, fwd_left_res = 0, fwd_right_res = 0,
                               bwd_left_err_res = 0, bwd_right_err_res = 0, fwd_left_err_res = 0, fwd_right_err_res = 0,
+                              bwd_left_err2_res = 0, bwd_right_err2_res = 0, fwd_left_err2_res = 0, fwd_right_err2_res = 0,
                               occs = 0, result = 0, locations_size, i, j, k, l, n;
 
     // First obtain the the SA range of P[s1+1..s2] and then the SA’ range using forward search.
     bidirectional_search_forward(csa, rev_csa, 0, csa.size() - 1, 0, rev_csa.size() - 1, begin + s_1, begin + s_2,
                                  fwd_left_res, fwd_right_res, bwd_left_res, bwd_right_res);
+
+    cout << "s1: " << s_1 << ", s2: " << s_2 << endl;
+    cout << "begin: " << (char)*(begin + s_1) << ", end: " << (char)*(begin + s_2) << endl;
+    cout << "BD: fwd_left_res " << fwd_left_res << ", fwd_right_res " << fwd_right_res << ", bwd_left_res " << bwd_left_res << ", bwd_right_res " << bwd_right_res << endl;
 
     if (bwd_left_res > bwd_right_res)
         return 0;
@@ -190,8 +194,15 @@ count_two_errors_case_d(const t_csa &csa,
         {
             if (csa.char2comp[curr_char] != j)
             {
-                backward_search(csa, bwd_left_res, bwd_right_res, csa.comp2char[j], bwd_left_err_res, bwd_right_err_res);
-                backward_search(csa, bwd_left_err_res, bwd_right_err_res, begin, begin + i - 1, bwd_left_err_res, bwd_right_err_res);
+                cout << "(Before BW): fwd_left_res " << fwd_left_res << ", fwd_right_res " << fwd_right_res << ", bwd_left_res " << bwd_left_res << ", bwd_right_res " << bwd_right_res << endl;
+                bidirectional_search(rev_csa, fwd_left_res, fwd_right_res, bwd_left_res, bwd_right_res, csa.comp2char[j],
+                                     fwd_left_err_res, fwd_right_err_res, bwd_left_err_res, bwd_right_err_res);
+                cout << "(BW) " << curr_char << " -> " << csa.comp2char[j] << ":\tfwd_left_err_res " << fwd_left_err_res << ",\tfwd_right_err_res " << fwd_right_err_res << ":\tbwd_left_err_res " << bwd_left_err_res << ",\tbwd_right_err_res " << bwd_right_err_res << endl;
+
+                bidirectional_search_backward(rev_csa, csa, fwd_left_err_res, fwd_right_err_res, bwd_left_err_res, bwd_right_err_res, begin, begin + i - 1,
+                                              fwd_left_err_res, fwd_right_err_res, bwd_left_err_res, bwd_right_err_res);
+                cout << "(Rest BW)"
+                     << ":\tfwd_left_err_res " << fwd_left_err_res << ",\tfwd_right_err_res " << fwd_right_err_res << ",\tbwd_left_err_res " << bwd_left_err_res << ",\tbwd_right_err_res " << bwd_right_err_res << endl;
 
                 // For each k=s2,...,m, we apply forward search to compute the SA range of P[1..i−1]e1P[i..j−1]e2P[j..m] for all possible e2.
                 for (k = s_2; k < csa.size(); k++)
@@ -201,8 +212,17 @@ count_two_errors_case_d(const t_csa &csa,
                         curr_char = (typename t_csa::char_type) * (begin + k);
                         if (csa.char2comp[curr_char] != l)
                         {
-                            backward_search(rev_csa, bwd_left_err_res, bwd_right_err_res, csa.comp2char[l], fwd_left_err_res, fwd_right_err_res);
-                            occs = backward_search(rev_csa, fwd_left_err_res, fwd_right_err_res, rev_begin, rev_begin + k - 1, fwd_left_err_res, fwd_right_err_res);
+                            cout << "(Before FW)"
+                                 << ":\tfwd_left_err_res " << fwd_left_err_res << ",\tfwd_right_err_res " << fwd_right_err_res << ",\tbwd_left_err_res " << bwd_left_err_res << ",\tbwd_right_err_res " << bwd_right_err_res << endl;
+                            bidirectional_search(csa, fwd_left_err_res, fwd_right_err_res, bwd_left_err_res, bwd_right_err_res, csa.comp2char[l],
+                                                 fwd_left_err2_res, fwd_right_err2_res, bwd_left_err2_res, bwd_right_err2_res);
+                            cout << "(FW) " << curr_char << " -> " << csa.comp2char[l] << ":\tfwd_left_err2_res " << fwd_left_err2_res << ",\tfwd_right_err2_res " << fwd_right_err2_res << ":\tbwd_left_err2_res " << bwd_left_err2_res << ",\tbwd_right_err2_res " << bwd_right_err2_res << endl;
+
+                            bidirectional_search_forward(rev_csa, csa, fwd_left_err2_res, fwd_right_err2_res, bwd_left_err2_res, bwd_right_err2_res, begin, begin + k - 1,
+                                                         fwd_left_err2_res, fwd_right_err2_res, bwd_left_err2_res, bwd_right_err2_res);
+                            cout << "(Rest FW)"
+                                 << ":\tfwd_left_err2_res " << fwd_left_err2_res << ",\tfwd_right_err2_res " << fwd_right_err2_res << ",\tbwd_left_err2_res " << bwd_left_err2_res << ",\tbwd_right_err2_res " << bwd_right_err2_res << endl;
+
                             result += occs;
 
                             if (locate && occs > 0)
@@ -210,15 +230,21 @@ count_two_errors_case_d(const t_csa &csa,
                                 locations_size = locations.size();
                                 locations.resize(locations_size + occs);
                                 for (n = 0; n < occs; n++)
-                                    locations[locations_size + n] = csa[fwd_left_err_res + n];
+                                    locations[locations_size + n] = csa.size() - 1 - csa[fwd_left_err_res + n];
                             }
                         }
                     }
-                    backward_search(rev_csa, bwd_left_err_res, bwd_right_err_res, curr_char, bwd_left_err_res, bwd_right_err_res);
+                    bidirectional_search(csa, fwd_left_err_res, fwd_right_err_res, bwd_left_err_res, bwd_right_err_res, csa.comp2char[l],
+                                         fwd_left_err_res, fwd_right_err_res, bwd_left_err_res, bwd_right_err_res);
+                    cout << "(End FW)"
+                         << ":\tfwd_left_err_res " << fwd_left_err_res << ",\tfwd_right_err_res " << fwd_right_err_res << ",\tbwd_left_err_res " << bwd_left_err_res << ",\tbwd_right_err_res " << bwd_right_err_res << endl;
                 }
             }
             //return char at i index in P to the original one
-            backward_search(csa, bwd_left_res, bwd_right_res, curr_char, bwd_left_res, bwd_right_res);
+            bidirectional_search(rev_csa, fwd_left_res, fwd_right_res, bwd_left_res, bwd_right_res, csa.comp2char[l],
+                                 fwd_left_res, fwd_right_res, bwd_left_res, bwd_right_res);
+            cout << "(End BW)"
+                 << ":\tfwd_left_res " << fwd_left_res << ",\tfwd_right_res " << fwd_right_res << ",\tbwd_left_res " << bwd_left_res << ",\tbwd_right_res " << bwd_right_res << endl;
         }
     }
     return result;
