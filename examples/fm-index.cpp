@@ -169,21 +169,21 @@ count_two_errors_case_d(const t_csa &csa,
     if (end - begin > (typename std::iterator_traits<t_pat_iter>::difference_type)csa.size())
         return 0;
 
-    typename t_csa::char_type curr_char;
-    typename t_csa::size_type bwd_left_res = 0, bwd_right_res = 0, fwd_left_res = 0, fwd_right_res = 0,
-                              bwd_left_err_res = 0, bwd_right_err_res = 0, fwd_left_err_res = 0, fwd_right_err_res = 0,
-                              bwd_left_err2_res = 0, bwd_right_err2_res = 0, fwd_left_err2_res = 0, fwd_right_err2_res = 0,
+    typename t_csa::char_type curr_char, curr_char2;
+    typename t_csa::size_type left_res = 0, right_res = 0, rev_left_res = 0, rev_right_res = 0,
+                              left_err_res = 0, right_err_res = 0, rev_left_err_res = 0, rev_right_err_res = 0,
+                              left_err2_res = 0, right_err2_res = 0, rev_left_err2_res = 0, rev_right_err2_res = 0,
                               occs = 0, result = 0, locations_size, i, j, k, l, n;
 
     // First obtain the the SA range of P[s1+1..s2] and then the SA’ range using forward search.
     bidirectional_search_forward(csa, rev_csa, 0, csa.size() - 1, 0, rev_csa.size() - 1, begin + s_1, begin + s_2,
-                                 fwd_left_res, fwd_right_res, bwd_left_res, bwd_right_res);
+                                 left_res, right_res, rev_left_res, rev_right_res);
 
     cout << "s1: " << s_1 << ", s2: " << s_2 << endl;
-    cout << "begin: " << (char)*(begin + s_1) << ", end: " << (char)*(begin + s_2) << endl;
-    cout << "BD: fwd_left_res " << fwd_left_res << ", fwd_right_res " << fwd_right_res << ", bwd_left_res " << bwd_left_res << ", bwd_right_res " << bwd_right_res << endl;
+    cout << "begin + s_1: " << (char)*(begin + s_1) << ", begin + s_2: " << (char)*(begin + s_2) << endl;
+    cout << "BD: rev_left_res " << rev_left_res << ", rev_right_res " << rev_right_res << ", left_res " << left_res << ", right_res " << right_res << endl;
 
-    if (bwd_left_res > bwd_right_res)
+    if (left_res > right_res)
         return 0;
 
     // For each i=s1-1,...,0, we apply backward search to compute the SA range of P[1..i−1]e1P[i+1..s2-1].
@@ -194,34 +194,37 @@ count_two_errors_case_d(const t_csa &csa,
         {
             if (csa.char2comp[curr_char] != j)
             {
-                cout << "(Before BW): fwd_left_res " << fwd_left_res << ", fwd_right_res " << fwd_right_res << ", bwd_left_res " << bwd_left_res << ", bwd_right_res " << bwd_right_res << endl;
-                bidirectional_search(rev_csa, fwd_left_res, fwd_right_res, bwd_left_res, bwd_right_res, csa.comp2char[j],
-                                     fwd_left_err_res, fwd_right_err_res, bwd_left_err_res, bwd_right_err_res);
-                cout << "(BW) " << curr_char << " -> " << csa.comp2char[j] << ":\tfwd_left_err_res " << fwd_left_err_res << ",\tfwd_right_err_res " << fwd_right_err_res << ":\tbwd_left_err_res " << bwd_left_err_res << ",\tbwd_right_err_res " << bwd_right_err_res << endl;
+                cout << "(Before BW): rev_left_res " << rev_left_res << ", rev_right_res " << rev_right_res << ", left_res " << left_res << ", right_res " << right_res << endl;
+                bidirectional_search(csa, left_res, right_res, rev_left_res, rev_right_res, csa.comp2char[j],
+                                     left_err_res, right_err_res, rev_left_err_res, rev_right_err_res);
+                cout << "(BW) " << curr_char << " -> " << csa.comp2char[j] << ":\trev_left_err_res " << rev_left_err_res << ",\trev_right_err_res " << rev_right_err_res << ":\tleft_err_res " << left_err_res << ",\tright_err_res " << right_err_res << endl;
 
-                bidirectional_search_backward(rev_csa, csa, fwd_left_err_res, fwd_right_err_res, bwd_left_err_res, bwd_right_err_res, begin, begin + i - 1,
-                                              fwd_left_err_res, fwd_right_err_res, bwd_left_err_res, bwd_right_err_res);
+                occs = bidirectional_search_backward(csa, rev_csa, left_err_res, right_err_res, rev_left_err_res, rev_right_err_res, begin, begin + i - 1,
+                                                     left_err_res, right_err_res, rev_left_err_res, rev_right_err_res);
                 cout << "(Rest BW)"
-                     << ":\tfwd_left_err_res " << fwd_left_err_res << ",\tfwd_right_err_res " << fwd_right_err_res << ",\tbwd_left_err_res " << bwd_left_err_res << ",\tbwd_right_err_res " << bwd_right_err_res << endl;
+                     << ":\trev_left_err_res " << rev_left_err_res << ",\trev_right_err_res " << rev_right_err_res << ",\tleft_err_res " << left_err_res << ",\tright_err_res " << right_err_res << endl;
+
+                if (occs == 0)
+                    continue;
 
                 // For each k=s2,...,m, we apply forward search to compute the SA range of P[1..i−1]e1P[i..j−1]e2P[j..m] for all possible e2.
-                for (k = s_2; k < csa.size(); k++)
+                for (k = s_2; k < m; k++)
                 {
+                    curr_char2 = (typename t_csa::char_type) * (begin + k);
                     for (l = 1; l < csa.sigma; l++)
                     {
-                        curr_char = (typename t_csa::char_type) * (begin + k);
-                        if (csa.char2comp[curr_char] != l)
+                        if (csa.char2comp[curr_char2] != l)
                         {
                             cout << "(Before FW)"
-                                 << ":\tfwd_left_err_res " << fwd_left_err_res << ",\tfwd_right_err_res " << fwd_right_err_res << ",\tbwd_left_err_res " << bwd_left_err_res << ",\tbwd_right_err_res " << bwd_right_err_res << endl;
-                            bidirectional_search(csa, fwd_left_err_res, fwd_right_err_res, bwd_left_err_res, bwd_right_err_res, csa.comp2char[l],
-                                                 fwd_left_err2_res, fwd_right_err2_res, bwd_left_err2_res, bwd_right_err2_res);
-                            cout << "(FW) " << curr_char << " -> " << csa.comp2char[l] << ":\tfwd_left_err2_res " << fwd_left_err2_res << ",\tfwd_right_err2_res " << fwd_right_err2_res << ":\tbwd_left_err2_res " << bwd_left_err2_res << ",\tbwd_right_err2_res " << bwd_right_err2_res << endl;
+                                 << ":\trev_left_err_res " << rev_left_err_res << ",\trev_right_err_res " << rev_right_err_res << ",\tleft_err_res " << left_err_res << ",\tright_err_res " << right_err_res << endl;
+                            bidirectional_search(rev_csa, rev_left_err_res, rev_right_err_res, left_err_res, right_err_res, csa.comp2char[l],
+                                                 rev_left_err2_res, rev_right_err2_res, left_err2_res, right_err2_res);
+                            cout << "(FW) " << curr_char2 << " -> " << csa.comp2char[l] << ":\trev_left_err2_res " << rev_left_err2_res << ",\trev_right_err2_res " << rev_right_err2_res << ":\tleft_err2_res " << left_err2_res << ",\tright_err2_res " << right_err2_res << endl;
 
-                            bidirectional_search_forward(rev_csa, csa, fwd_left_err2_res, fwd_right_err2_res, bwd_left_err2_res, bwd_right_err2_res, begin, begin + k - 1,
-                                                         fwd_left_err2_res, fwd_right_err2_res, bwd_left_err2_res, bwd_right_err2_res);
+                            occs = bidirectional_search_forward(csa, rev_csa, left_err2_res, right_err2_res, rev_left_err2_res, rev_right_err2_res, begin + k, end - 1,
+                                                                left_err2_res, right_err2_res, rev_left_err2_res, rev_right_err2_res);
                             cout << "(Rest FW)"
-                                 << ":\tfwd_left_err2_res " << fwd_left_err2_res << ",\tfwd_right_err2_res " << fwd_right_err2_res << ",\tbwd_left_err2_res " << bwd_left_err2_res << ",\tbwd_right_err2_res " << bwd_right_err2_res << endl;
+                                 << ":\trev_left_err2_res " << rev_left_err2_res << ",\trev_right_err2_res " << rev_right_err2_res << ",\tleft_err2_res " << left_err2_res << ",\tright_err2_res " << right_err2_res << endl;
 
                             result += occs;
 
@@ -230,22 +233,25 @@ count_two_errors_case_d(const t_csa &csa,
                                 locations_size = locations.size();
                                 locations.resize(locations_size + occs);
                                 for (n = 0; n < occs; n++)
-                                    locations[locations_size + n] = csa.size() - 1 - csa[fwd_left_err_res + n];
+                                    locations[locations_size + n] = csa[left_err2_res + n];
                             }
                         }
                     }
-                    bidirectional_search(csa, fwd_left_err_res, fwd_right_err_res, bwd_left_err_res, bwd_right_err_res, csa.comp2char[l],
-                                         fwd_left_err_res, fwd_right_err_res, bwd_left_err_res, bwd_right_err_res);
+                    cout << "(Before End FW)"
+                         << ":\trev_left_err_res " << rev_left_err_res << ",\trev_right_err_res " << rev_right_err_res << ",\tleft_err_res " << left_err_res << ",\tright_err_res " << right_err_res << endl;
+                    cout << "curr_char2: " << curr_char2 << endl;
+                    bidirectional_search(rev_csa, rev_left_err_res, rev_right_err_res, left_err_res, right_err_res, curr_char2,
+                                         rev_left_err_res, rev_right_err_res, left_err_res, right_err_res);
                     cout << "(End FW)"
-                         << ":\tfwd_left_err_res " << fwd_left_err_res << ",\tfwd_right_err_res " << fwd_right_err_res << ",\tbwd_left_err_res " << bwd_left_err_res << ",\tbwd_right_err_res " << bwd_right_err_res << endl;
+                         << ":\trev_left_err_res " << rev_left_err_res << ",\trev_right_err_res " << rev_right_err_res << ",\tleft_err_res " << left_err_res << ",\tright_err_res " << right_err_res << endl;
                 }
             }
-            //return char at i index in P to the original one
-            bidirectional_search(rev_csa, fwd_left_res, fwd_right_res, bwd_left_res, bwd_right_res, csa.comp2char[l],
-                                 fwd_left_res, fwd_right_res, bwd_left_res, bwd_right_res);
-            cout << "(End BW)"
-                 << ":\tfwd_left_res " << fwd_left_res << ",\tfwd_right_res " << fwd_right_res << ",\tbwd_left_res " << bwd_left_res << ",\tbwd_right_res " << bwd_right_res << endl;
         }
+        //return char at i index in P to the original one
+        bidirectional_search(csa, left_res, right_res, rev_left_res, rev_right_res, curr_char,
+                             left_res, right_res, rev_left_res, rev_right_res);
+        cout << "(End BW)"
+             << ":\trev_left_res " << rev_left_res << ",\trev_right_res " << rev_right_res << ",\tleft_res " << left_res << ",\tright_res " << right_res << endl;
     }
     return result;
 }
@@ -261,8 +267,8 @@ handle_two_errors(
     bool locate)
 {
     size_t occs = 0;
-    // return occs = count_two_errors_case_d(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
-    return occs = count_two_errors_case(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
+    return occs = count_two_errors_case_d(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
+    // return occs = count_two_errors_case(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
 }
 
 int main(int argc, char **argv)
