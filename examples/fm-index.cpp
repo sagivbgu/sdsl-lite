@@ -153,16 +153,13 @@ typename t_csa::size_type count_two_errors_case(const t_csa &csa,
 
 template <class t_csa, class t_rac, class t_pat_iter>
 typename t_csa::size_type
-count_two_errors_case_b(const t_csa &csa, // TODO: Remove
-                        const t_csa &rev_csa,
-                        t_pat_iter begin, // TODO: Remove
-                        t_pat_iter end, // TODO: Remove
+count_two_errors_case_b(const t_csa &rev_csa,
                         t_pat_iter rev_begin,
                         t_pat_iter rev_end,
                         t_rac &locations,
                         bool locate)
 {
-    typename t_csa::size_type m = end - begin;
+    typename t_csa::size_type m = rev_end - rev_begin;
     typename t_csa::size_type s_1 = m / 3; // Original, not the reversed
     typename t_csa::size_type s_2 = m - s_1; // Original, not the reversed
 
@@ -236,16 +233,13 @@ count_two_errors_case_b(const t_csa &csa, // TODO: Remove
 
 template <class t_csa, class t_rac, class t_pat_iter>
 typename t_csa::size_type
-count_two_errors_case_c(const t_csa &csa, // TODO: Remove
-                        const t_csa &rev_csa,
-                        t_pat_iter begin, // TODO: Remove
-                        t_pat_iter end, // TODO: Remove
+count_two_errors_case_c(const t_csa &rev_csa,
                         t_pat_iter rev_begin,
                         t_pat_iter rev_end,
                         t_rac &locations,
                         bool locate)
 {
-    typename t_csa::size_type m = end - begin;
+    typename t_csa::size_type m = rev_end - rev_begin;
     typename t_csa::size_type s_1 = m / 3; // Original, not the reversed
     typename t_csa::size_type s_2 = m - s_1; // Original, not the reversed
 
@@ -326,8 +320,6 @@ count_two_errors_case_d(const t_csa &csa,
                         const t_csa &rev_csa,
                         t_pat_iter begin,
                         t_pat_iter end,
-                        t_pat_iter rev_begin,
-                        t_pat_iter rev_end,
                         t_rac &locations,
                         bool locate)
 {
@@ -436,10 +428,11 @@ handle_two_errors(
     bool locate)
 {
     size_t occs = 0;
-    // return occs = count_two_errors_case_b(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
-    // return occs = count_two_errors_case_c(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
-    return occs = count_two_errors_case_d(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
-    // return occs = count_two_errors_case(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
+    // occs += count_two_errors_case(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
+    occs += count_two_errors_case_b(rev_csa, rev_query.begin(), rev_query.end(), locations, locate);
+    occs += count_two_errors_case_c(rev_csa, rev_query.begin(), rev_query.end(), locations, locate);
+    occs += count_two_errors_case_d(csa, rev_csa, query.begin(), query.end(), locations, locate);
+    return occs;
 }
 
 int main(int argc, char **argv)
