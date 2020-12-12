@@ -390,7 +390,7 @@ count_two_errors_case_d(const t_csa &csa,
                                                  rev_left_err2_res, rev_right_err2_res, left_err2_res, right_err2_res);
                             cout << "(FW) " << curr_char2 << " -> " << csa.comp2char[l] << ":\trev_left_err2_res " << rev_left_err2_res << ",\trev_right_err2_res " << rev_right_err2_res << ":\tleft_err2_res " << left_err2_res << ",\tright_err2_res " << right_err2_res << endl;
 
-                            occs = bidirectional_search_forward(csa, rev_csa, left_err2_res, right_err2_res, rev_left_err2_res, rev_right_err2_res, begin + k, end - 1,
+                            occs = bidirectional_search_forward(csa, rev_csa, left_err2_res, right_err2_res, rev_left_err2_res, rev_right_err2_res, begin + k + 1, end,
                                                                 left_err2_res, right_err2_res, rev_left_err2_res, rev_right_err2_res);
                             cout << "(Rest FW)"
                                  << ":\trev_left_err2_res " << rev_left_err2_res << ",\trev_right_err2_res " << rev_right_err2_res << ",\tleft_err2_res " << left_err2_res << ",\tright_err2_res " << right_err2_res << endl;
@@ -437,8 +437,8 @@ handle_two_errors(
 {
     size_t occs = 0;
     // return occs = count_two_errors_case_b(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
-    return occs = count_two_errors_case_c(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
-    // return occs = count_two_errors_case_d(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
+    // return occs = count_two_errors_case_c(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
+    return occs = count_two_errors_case_d(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
     // return occs = count_two_errors_case(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
 }
 
