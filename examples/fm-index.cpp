@@ -7,16 +7,8 @@
 using namespace sdsl;
 using namespace std;
 
-// TODO: Remove all comments
-// typedef sdsl::csa_wt<sdsl::wt_pc<sdsl::balanced_shape, sdsl::int_vector<(unsigned char)1>, sdsl::rank_support_v<(unsigned char)1, (unsigned char)1>, sdsl::select_support_mcl<(unsigned char)1, (unsigned char)1>, sdsl::select_support_mcl<(unsigned char)0, (unsigned char)1>, sdsl::byte_tree<false> >,
-//   32u, 32u, sdsl::sa_order_sa_sampling<(unsigned char)0>, sdsl::isa_sampling<(unsigned char)0>, sdsl::byte_alphabet> t_csa;
+//-----------  1-error -----------//
 typedef csa_wt<wt_blcd<>, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet> t_csa;
-//   csa_wt<wt_huff<>, 64, 64, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet>
-//    csa_wt<wt_blcd<>, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, succinct_byte_alphabet<> >,
-//    csa_wt<wt_hutu<>, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet>,
-//    csa_wt<wt_hutu<>, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, succinct_byte_alphabet<> >,
-//    csa_wt<wt_hutu<bit_vector_il<> >, 32, 32, sa_order_sa_sampling<>, isa_sampling<>, byte_alphabet>
-
 template <class t_csa, class t_rac, class t_pat_iter>
 typename t_csa::size_type count_one_error_case(const t_csa &csa, typename t_csa::size_type left_window, typename t_csa::size_type right_window,
                                                t_pat_iter begin, t_pat_iter end, bool include_middle, bool case_a, t_rac &locations, bool locate)
@@ -103,49 +95,69 @@ handle_one_error(
 {
     return handle_one_error(csa, rev_csa, 0, csa.size() - 1, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
 }
-///////////////////2-errors////////////////////////////////
+
+
+//-----------  2-errors -----------//
+
 template <class t_csa, class t_rac, class t_pat_iter>
-typename t_csa::size_type count_two_errors_case(const t_csa &csa,
-                                                const t_csa &rev_csa,
+typename t_csa::size_type count_two_errors_case_a(const t_csa &csa,
                                                 t_pat_iter begin,
                                                 t_pat_iter end,
-                                                t_pat_iter rev_begin,
-                                                t_pat_iter rev_end,
                                                 t_rac &locations,
                                                 bool locate)
 {
+    size_t locations_size;
     typename t_csa::size_type m = end - begin;
-    typename t_csa::size_type s_1 = (m) / 3;
+    typename t_csa::size_type s_1 = m / 3;
     typename t_csa::size_type s_2 = m - s_1;
 
     if (end - begin > (typename std::iterator_traits<t_pat_iter>::difference_type)csa.size())
         return 0;
 
-    typename t_csa::char_type curr_char;
-    typename t_csa::size_type left_res = 0, right_res = 0, j = 0, left_err_res = 0, right_err_res = 0, result = 0, occs = 0;
-    // size_t locations_size;
+    typename t_csa::char_type curr_first_char, curr_second_char;
+    typename t_csa::size_type left_res = 0, right_res = 0, j = 0, left_err_res = 0, right_err_res = 0,left_err2_res=0, right_err2_res=0, result = 0, occs = 0;
 
-    //find SA of last third P[s_2...m]
     backward_search(csa, 0, csa.size() - 1, begin + s_2, end, left_res, right_res);
-
+    
     if (left_res <= right_res)
     {
-        //for each curr_char at index j in P[1...s_2 -1]
-        for (j = s_2; j > 0; j--)
+        for (j = s_2; j > 1; j--)
         {
-            curr_char = (typename t_csa::char_type) * (begin + j - 1);
-            //check existence of P[0...i-1]<<j<<P[i+1...m] s.t j!=i, j in alphabet
+            curr_first_char = (typename t_csa::char_type) * (begin + j - 1);
+            //possible replacments of first error:
             for (size_t i = 1; i < csa.sigma; i++)
             {
-                if (csa.char2comp[curr_char] != i)
+                if (csa.char2comp[curr_first_char] != i)
                 {
-                    backward_search(csa, left_res, right_res, csa.comp2char[i], left_err_res, right_err_res);
-                    occs = handle_one_error(csa, rev_csa, left_err_res, right_err_res, begin, begin + j - 1, rev_begin, rev_end, locations, locate);
-                    result += occs;
+                    backward_search(csa, left_res, right_res, csa.comp2char[i],left_err_res, right_err_res);
+                    
+                    for (size_t k = j-1; k>0 ; k--){
+                        curr_second_char = (typename t_csa::char_type) * (begin + k-1);
+                                    
+                        //possible replacments of second error:
+                        for (size_t l = 1; l < csa.sigma; l++){
+                            if (csa.char2comp[curr_second_char] != l){
+                                
+                                backward_search(csa, left_err_res, right_err_res,  csa.comp2char[l],left_err2_res, right_err2_res); 
+                                occs = backward_search(csa, left_err2_res, right_err2_res, begin, begin+k-1, left_err2_res,right_err2_res);
+                                result+= occs;
+                                
+                                if (locate && occs > 0)
+                                {
+                                    locations_size = locations.size();
+                                    locations.resize(locations_size + occs);
+                                    for (typename t_csa::size_type t = 0; t < occs; t++)
+                                    {
+                                        locations[locations_size + t] = csa[left_err2_res + t];
+                                    }
+                                }
+                            }
+                        }
+                        backward_search(csa, left_err_res,right_err_res, curr_second_char, left_err_res,right_err_res);
+                    }
                 }
             }
-            //return char at j index in P to the original one
-            backward_search(csa, left_res, right_res, curr_char, left_res, right_res);
+            backward_search(csa, left_res, right_res, curr_first_char, left_res, right_res);
         }
     }
     return result;
@@ -173,7 +185,6 @@ count_two_errors_case_b(const t_csa &rev_csa,
                               occs = 0, result = 0, locations_size, i, j, k, l, n;
 
     backward_search(rev_csa, 0, rev_csa.size() - 1, rev_begin + m - s_2, rev_end, rev_left_res, rev_right_res);
-    cout << "Initial: rev_left_res " << rev_left_res << ", rev_right_res " << rev_right_res << endl;
     
     if (rev_left_res > rev_right_res)
         return 0;
@@ -181,30 +192,25 @@ count_two_errors_case_b(const t_csa &rev_csa,
     for (i = m - s_2 - 1; i > 0; i--)
     {
         curr_char = (typename t_csa::char_type) * (rev_begin + i);
-        cout << "i = " << i << ", curr_char = " << curr_char << endl;
         for (j = 1; j < rev_csa.sigma; j++)
         {
             if (rev_csa.char2comp[curr_char] != j)
             {
                 occs = backward_search(rev_csa, rev_left_res, rev_right_res, rev_csa.comp2char[j], rev_left_err_res, rev_right_err_res);
-                cout << "First: " << curr_char << " -> " << rev_csa.comp2char[j] << ", rev_left_err_res " << rev_left_err_res << ", rev_right_err_res " << rev_right_err_res << endl;
-                
+
                 if (occs == 0)
                     continue;
 
                 for (k = i; k > 0; k--)
                 {
                     curr_char2 = (typename t_csa::char_type) * (rev_begin + k - 1);
-                    cout << "k = " << k << ", curr_char2 = " << curr_char2 << endl;
                     for (l = 1; l < rev_csa.sigma; l++)
                     {
                         if (rev_csa.char2comp[curr_char2] != l)
                         {
                             backward_search(rev_csa, rev_left_err_res, rev_right_err_res, rev_csa.comp2char[l], rev_left_err2_res, rev_right_err2_res);
-                            cout << "Second: " << curr_char << " -> " << rev_csa.comp2char[j] << ", rev_left_err2_res " << rev_left_err2_res << ", rev_right_err2_res " << rev_right_err2_res << endl;
 
                             occs = backward_search(rev_csa, rev_left_err2_res, rev_right_err2_res, rev_begin, rev_begin + k - 1, rev_left_err2_res, rev_right_err2_res);
-                            cout << "Rest: rev_left_err2_res " << rev_left_err2_res << ", rev_right_err2_res " << rev_right_err2_res << endl;
                             
                             result += occs;
 
@@ -215,18 +221,15 @@ count_two_errors_case_b(const t_csa &rev_csa,
                                 for (n = 0; n < occs; n++)
                                 {
                                     locations[locations_size + n] = rev_csa.size() - 1 - rev_csa[rev_left_err2_res + n] - m;
-                                    cout << "Match found: rev_csa[left_err2_res + n] = " << rev_csa[rev_left_err2_res + n] << ", rev_csa.size() - 1 = " << rev_csa.size() - 1 << ", m = " << m << " (rev_left_err2_res + n = " << rev_left_err2_res + n << ")" << endl;
                                 }
                             }
                         }
                     }
                     backward_search(rev_csa, rev_left_err_res, rev_right_err_res, curr_char2, rev_left_err_res, rev_right_err_res);
-                    cout << "End Second: rev_left_err_res " << rev_left_err_res << ", rev_right_err_res " << rev_right_err_res << endl;
                 }
             }
         }
         backward_search(rev_csa, rev_left_res, rev_right_res, curr_char, rev_left_res, rev_right_res);
-        cout << "End First: rev_left_res " << rev_left_res << ", rev_right_res " << rev_right_res << endl;
     }
     return result;
 }
@@ -253,7 +256,6 @@ count_two_errors_case_c(const t_csa &rev_csa,
                               occs = 0, result = 0, locations_size, i, j, k, l, n;
 
     backward_search(rev_csa, 0, rev_csa.size() - 1, rev_begin + m - s_1, rev_end, rev_left_res, rev_right_res);
-    cout << "Initial: rev_left_res " << rev_left_res << ", rev_right_res " << rev_right_res << endl;
     
     if (rev_left_res > rev_right_res)
         return 0;
@@ -261,16 +263,13 @@ count_two_errors_case_c(const t_csa &rev_csa,
     for (i = m - 1 - s_1; i > m - 1 - s_2; i--)
     {
         curr_char = (typename t_csa::char_type) * (rev_begin + i);
-        cout << "i = " << i << ", curr_char = " << curr_char << endl;
         for (j = 1; j < rev_csa.sigma; j++)
         {
             if (rev_csa.char2comp[curr_char] != j)
             {
                 backward_search(rev_csa, rev_left_res, rev_right_res, rev_csa.comp2char[j], rev_left_err_res, rev_right_err_res);
-                cout << "First: " << curr_char << " -> " << rev_csa.comp2char[j] << ", rev_left_err_res " << rev_left_err_res << ", rev_right_err_res " << rev_right_err_res << endl;
                 
                 occs = backward_search(rev_csa, rev_left_err_res, rev_right_err_res, rev_begin + m - s_2, rev_begin + i, rev_left_err_res, rev_right_err_res);
-                cout << "First rest: rev_left_err_res " << rev_left_err_res << ", rev_right_err_res " << rev_right_err_res << endl;
                 
                 if (occs == 0)
                     continue;
@@ -278,16 +277,13 @@ count_two_errors_case_c(const t_csa &rev_csa,
                 for (k = m - s_2; k > 0; k--)
                 {
                     curr_char2 = (typename t_csa::char_type) * (rev_begin + k - 1);
-                    cout << "k = " << k << ", curr_char2 = " << curr_char2 << endl;
                     for (l = 1; l < rev_csa.sigma; l++)
                     {
                         if (rev_csa.char2comp[curr_char2] != l)
                         {
                             backward_search(rev_csa, rev_left_err_res, rev_right_err_res, rev_csa.comp2char[l], rev_left_err2_res, rev_right_err2_res);
-                            cout << "Second: " << curr_char << " -> " << rev_csa.comp2char[j] << ", rev_left_err2_res " << rev_left_err2_res << ", rev_right_err2_res " << rev_right_err2_res << endl;
 
                             occs = backward_search(rev_csa, rev_left_err2_res, rev_right_err2_res, rev_begin, rev_begin + k - 1, rev_left_err2_res, rev_right_err2_res);
-                            cout << "Rest: rev_left_err2_res " << rev_left_err2_res << ", rev_right_err2_res " << rev_right_err2_res << endl;
                             
                             result += occs;
 
@@ -298,18 +294,15 @@ count_two_errors_case_c(const t_csa &rev_csa,
                                 for (n = 0; n < occs; n++)
                                 {
                                     locations[locations_size + n] = rev_csa.size() - 1 - rev_csa[rev_left_err2_res + n] - m;
-                                    cout << "Match found: rev_csa[left_err2_res + n] = " << rev_csa[rev_left_err2_res + n] << ", rev_csa.size() - 1 = " << rev_csa.size() - 1 << ", m = " << m << " (rev_left_err2_res + n = " << rev_left_err2_res + n << ")" << endl;
                                 }
                             }
                         }
                     }
                     backward_search(rev_csa, rev_left_err_res, rev_right_err_res, curr_char2, rev_left_err_res, rev_right_err_res);
-                    cout << "End Second: rev_left_err_res " << rev_left_err_res << ", rev_right_err_res " << rev_right_err_res << endl;
                 }
             }
         }
         backward_search(rev_csa, rev_left_res, rev_right_res, curr_char, rev_left_res, rev_right_res);
-        cout << "End First: rev_left_res " << rev_left_res << ", rev_right_res " << rev_right_res << endl;
     }
     return result;
 }
@@ -340,10 +333,6 @@ count_two_errors_case_d(const t_csa &csa,
     bidirectional_search_forward(csa, rev_csa, 0, csa.size() - 1, 0, rev_csa.size() - 1, begin + s_1, begin + s_2,
                                  left_res, right_res, rev_left_res, rev_right_res);
 
-    cout << "s1: " << s_1 << ", s2: " << s_2 << endl;
-    cout << "begin + s_1: " << (char)*(begin + s_1) << ", begin + s_2: " << (char)*(begin + s_2) << endl;
-    cout << "BD: rev_left_res " << rev_left_res << ", rev_right_res " << rev_right_res << ", left_res " << left_res << ", right_res " << right_res << endl;
-
     if (left_res > right_res)
         return 0;
 
@@ -355,15 +344,11 @@ count_two_errors_case_d(const t_csa &csa,
         {
             if (csa.char2comp[curr_char] != j)
             {
-                cout << "(Before BW): rev_left_res " << rev_left_res << ", rev_right_res " << rev_right_res << ", left_res " << left_res << ", right_res " << right_res << endl;
                 bidirectional_search(csa, left_res, right_res, rev_left_res, rev_right_res, csa.comp2char[j],
                                      left_err_res, right_err_res, rev_left_err_res, rev_right_err_res);
-                cout << "(BW) " << curr_char << " -> " << csa.comp2char[j] << ":\trev_left_err_res " << rev_left_err_res << ",\trev_right_err_res " << rev_right_err_res << ":\tleft_err_res " << left_err_res << ",\tright_err_res " << right_err_res << endl;
 
                 occs = bidirectional_search_backward(csa, rev_csa, left_err_res, right_err_res, rev_left_err_res, rev_right_err_res, begin, begin + i - 1,
                                                      left_err_res, right_err_res, rev_left_err_res, rev_right_err_res);
-                cout << "(Rest BW)"
-                     << ":\trev_left_err_res " << rev_left_err_res << ",\trev_right_err_res " << rev_right_err_res << ",\tleft_err_res " << left_err_res << ",\tright_err_res " << right_err_res << endl;
 
                 if (occs == 0)
                     continue;
@@ -376,16 +361,11 @@ count_two_errors_case_d(const t_csa &csa,
                     {
                         if (csa.char2comp[curr_char2] != l)
                         {
-                            cout << "(Before FW)"
-                                 << ":\trev_left_err_res " << rev_left_err_res << ",\trev_right_err_res " << rev_right_err_res << ",\tleft_err_res " << left_err_res << ",\tright_err_res " << right_err_res << endl;
                             bidirectional_search(rev_csa, rev_left_err_res, rev_right_err_res, left_err_res, right_err_res, csa.comp2char[l],
                                                  rev_left_err2_res, rev_right_err2_res, left_err2_res, right_err2_res);
-                            cout << "(FW) " << curr_char2 << " -> " << csa.comp2char[l] << ":\trev_left_err2_res " << rev_left_err2_res << ",\trev_right_err2_res " << rev_right_err2_res << ":\tleft_err2_res " << left_err2_res << ",\tright_err2_res " << right_err2_res << endl;
 
                             occs = bidirectional_search_forward(csa, rev_csa, left_err2_res, right_err2_res, rev_left_err2_res, rev_right_err2_res, begin + k + 1, end,
                                                                 left_err2_res, right_err2_res, rev_left_err2_res, rev_right_err2_res);
-                            cout << "(Rest FW)"
-                                 << ":\trev_left_err2_res " << rev_left_err2_res << ",\trev_right_err2_res " << rev_right_err2_res << ",\tleft_err2_res " << left_err2_res << ",\tright_err2_res " << right_err2_res << endl;
 
                             result += occs;
 
@@ -398,21 +378,14 @@ count_two_errors_case_d(const t_csa &csa,
                             }
                         }
                     }
-                    cout << "(Before End FW)"
-                         << ":\trev_left_err_res " << rev_left_err_res << ",\trev_right_err_res " << rev_right_err_res << ",\tleft_err_res " << left_err_res << ",\tright_err_res " << right_err_res << endl;
-                    cout << "curr_char2: " << curr_char2 << endl;
                     bidirectional_search(rev_csa, rev_left_err_res, rev_right_err_res, left_err_res, right_err_res, curr_char2,
                                          rev_left_err_res, rev_right_err_res, left_err_res, right_err_res);
-                    cout << "(End FW)"
-                         << ":\trev_left_err_res " << rev_left_err_res << ",\trev_right_err_res " << rev_right_err_res << ",\tleft_err_res " << left_err_res << ",\tright_err_res " << right_err_res << endl;
                 }
             }
         }
         //return char at i index in P to the original one
         bidirectional_search(csa, left_res, right_res, rev_left_res, rev_right_res, curr_char,
                              left_res, right_res, rev_left_res, rev_right_res);
-        cout << "(End BW)"
-             << ":\trev_left_res " << rev_left_res << ",\trev_right_res " << rev_right_res << ",\tleft_res " << left_res << ",\tright_res " << right_res << endl;
     }
     return result;
 }
@@ -428,7 +401,7 @@ handle_two_errors(
     bool locate)
 {
     size_t occs = 0;
-    // occs += count_two_errors_case(csa, rev_csa, query.begin(), query.end(), rev_query.begin(), rev_query.end(), locations, locate);
+    occs += count_two_errors_case_a(csa, query.begin(), query.end(), locations, locate);
     occs += count_two_errors_case_b(rev_csa, rev_query.begin(), rev_query.end(), locations, locate);
     occs += count_two_errors_case_c(rev_csa, rev_query.begin(), rev_query.end(), locations, locate);
     occs += count_two_errors_case_d(csa, rev_csa, query.begin(), query.end(), locations, locate);
@@ -488,11 +461,9 @@ int main(int argc, char **argv)
             cout << "ERROR: File " << argv[1] << " does not exist. Exit." << endl;
             return 1;
         }
-        // cout << "No index " << index_file << " located. Building index now." << endl;
         construct(fm_index, argv[1], 1);     // generate index
         store_to_file(fm_index, index_file); // save it
     }
-    // cout << "Index construction complete, index requires " << size_in_mega_bytes(fm_index) << " MiB." << endl;
 
     ifstream index_file_stream(argv[1]);
     string rev_index_string((istreambuf_iterator<char>(index_file_stream)), istreambuf_iterator<char>());
@@ -503,7 +474,6 @@ int main(int argc, char **argv)
 
     if (!load_from_file(rev_fm_index, rev_index_file))
     {
-        // cout << "No reversed index " << index_file << " located. Building reversed index now." << endl;
         construct_im(rev_fm_index, rev_index_string, 1); // generate index
         store_to_file(rev_fm_index, rev_index_file);     // save it
     }
@@ -512,9 +482,6 @@ int main(int argc, char **argv)
     if (max_locations > 0)
         do_locate = true;
 
-    // cout << "Input search terms and press Ctrl-D to exit." << endl;
-    // string prompt = "\e[0;32m>\e[0m ";
-    // cout << prompt;
     string query, rev_query;
     while (getline(cin, query))
     {
@@ -540,7 +507,8 @@ int main(int argc, char **argv)
         cout << query << " : " << occs << endl;
         if (occs > 0)
         {
-            cout << "Location and context of first occurrences:" << endl;
+            if (do_locate)
+                cout << "Location and context of first occurrences:" << endl;
             sort(locations.begin(), locations.end());
             for (size_t i = 0, pre_extract = pre_context, post_extract = post_context; i < min(occs, max_locations); ++i)
             {
@@ -560,18 +528,11 @@ int main(int argc, char **argv)
                 {
                     pre = pre.substr(pre.find_last_of('\n') + 1);
                 }
-                // cout << pre;
-                // cout << "\e[1;31m";
                 cout << s.substr(0, m);
-                // cout << "\e[0m";
                 cout << endl;
-                // string context = s.substr(m);
-                // cout << context.substr(0, context.find_first_of('\n')) << endl;
             }
         }
-        // cout << prompt;
     }
 
-    index_file_stream.close(); // TODO: Check it's fine
-    // cout << endl;
+    index_file_stream.close(); 
 }
